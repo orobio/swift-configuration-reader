@@ -1,11 +1,16 @@
 import ConfigurationReader
+import ServiceLifecycle
+import Logging
 
 
 @main
 struct Example {
     static func main() async throws {
-        let exampleConfigurationStream = try await ExampleConfiguration.stream(
-            from: [
+        let logger = Logger(label: "example.logger.com")
+
+        let configurationService = ConfigurationService(
+            for: ExampleConfiguration.self,
+            filesSpecifications: [
                 ConfigurationFileSpecification(path: "./test1", optional: false),
                 ConfigurationFileSpecification(path: "./test2", optional: true),
             ],
@@ -13,13 +18,20 @@ struct Example {
             loadCommandLineArguments: true
         )
 
-        for await exampleConfiguration in exampleConfigurationStream {
-            do {
-                let exampleConfiguration = try exampleConfiguration.get()
-                print(exampleConfiguration)
-            } catch {
-                print("error: \(error)")
-            }
-        }
+        let testService = TestService(configurationService: configurationService)
+
+        let serviceGroup = ServiceGroup(
+            configuration: .init(
+                services: [
+                    .init(service: configurationService, successTerminationBehavior: .gracefullyShutdownGroup),
+                    .init(service: testService)
+                ],
+                gracefulShutdownSignals: [.sigterm, .sigint],
+                cancellationSignals: [],
+                logger: logger
+            )
+        )
+
+        try await serviceGroup.run()
     }
 }

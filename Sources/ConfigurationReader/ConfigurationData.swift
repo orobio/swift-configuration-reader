@@ -11,7 +11,7 @@ public protocol ConfigurationData {
 }
 
 
-extension ConfigurationData {
+extension ConfigurationData where Self: Sendable {
     /// Create an async sequence producing values of Self based on various configuration sources.
     ///
     /// Loads all configuration data from specified sources and initializes a value of Self from it.

@@ -13,10 +13,8 @@ enum ParseError: Error {
 }
 
 
-extension ExampleConfiguration: ConfigurationData {
-        init(from configurationManager: ConfigurationManager) throws {
-        print("debug: configuration data: \(configurationManager.getConfigs())")
-
+extension ExampleConfiguration: ConfigurationData, Equatable {
+    init(from configurationManager: ConfigurationManager) throws {
         guard let a = configurationManager["a"] as? String else {
             throw ParseError.failedToParseField("a")
         }
