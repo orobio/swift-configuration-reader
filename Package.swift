@@ -4,6 +4,14 @@ import PackageDescription
 
 let package = Package(
     name: "swift-configuration-reader",
+    products: [
+        .library(
+            name: "ConfigurationReader",
+            targets: [
+                "ConfigurationReader"
+            ]
+        ),
+    ],
     dependencies: [
         .package(url: "https://github.com/sersoft-gmbh/swift-inotify.git", from: "0.4.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.0.0-beta.1"),
