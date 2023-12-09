@@ -44,7 +44,7 @@ let package = Package(
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
                 .product(name: "Logging", package: "swift-log"),
             ],
-            swiftSettings: [.unsafeFlags(["-Xfrontend", "-strict-concurrency=complete"])]
+            swiftSettings: globalSwiftSettings
         ),
     ]
 )
