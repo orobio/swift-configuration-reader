@@ -2,6 +2,13 @@
 
 import PackageDescription
 
+
+var globalSwiftSettings = [SwiftSetting]()
+if Context.environment["ENABLE_CONCURRENCY_CHECKS"] != nil {
+    globalSwiftSettings.append(.unsafeFlags(["-Xfrontend", "-strict-concurrency=complete"]))
+}
+
+
 let package = Package(
     name: "swift-configuration-reader",
     products: [
@@ -25,7 +32,7 @@ let package = Package(
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "Configuration", package: "Configuration"),
             ],
-            swiftSettings: [.unsafeFlags(["-Xfrontend", "-strict-concurrency=complete"])]
+            swiftSettings: globalSwiftSettings
         ),
         .executableTarget(
             name: "Example",
