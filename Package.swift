@@ -23,6 +23,8 @@ let package = Package(
         .package(url: "https://github.com/sersoft-gmbh/swift-inotify.git", from: "0.4.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.0.0-beta.1"),
         .package(url: "https://github.com/Kitura/Configuration.git", from: "3.1.0"),
+        .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.0.0-alpha.1"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
     ],
     targets: [
         .target(
@@ -31,6 +33,8 @@ let package = Package(
                 .product(name: "Inotify", package: "swift-inotify"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "Configuration", package: "Configuration"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Logging", package: "swift-log"),
             ],
             swiftSettings: globalSwiftSettings
         ),
@@ -39,6 +43,8 @@ let package = Package(
             dependencies: [
                 "ConfigurationReader",
                 .product(name: "Configuration", package: "Configuration"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Logging", package: "swift-log"),
             ],
             swiftSettings: globalSwiftSettings
         ),
