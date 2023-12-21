@@ -39,7 +39,8 @@ let package = Package(
             dependencies: [
                 "ConfigurationReader",
                 .product(name: "Configuration", package: "Configuration"),
-            ]
+            ],
+            swiftSettings: globalSwiftSettings
         ),
     ]
 )
