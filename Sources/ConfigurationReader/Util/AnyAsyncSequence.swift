@@ -3,11 +3,11 @@
 /// Any errors from the base sequence are not propagated, but will
 /// terminate iteration.
 ///
-public struct AnyAsyncSequence<Element>: AsyncSequence {
+public struct AnyAsyncSequence<Element>: AsyncSequence, Sendable {
     public typealias AsyncIterator = AnyAsyncIterator<Element>
     public typealias Element = Element
 
-    let _makeAsyncIterator: () -> AnyAsyncIterator<Element>
+    let _makeAsyncIterator: @Sendable () -> AnyAsyncIterator<Element>
 
     public struct AnyAsyncIterator<IteratorElement>: AsyncIteratorProtocol {
         typealias IteratorElement = Element
@@ -25,7 +25,7 @@ public struct AnyAsyncSequence<Element>: AsyncSequence {
     }
 
 
-    init<S: AsyncSequence>(_ seq: S) where S.Element == Element {
+    init<S: AsyncSequence & Sendable>(_ seq: S) where S.Element == Element {
         _makeAsyncIterator = {
             AnyAsyncIterator(itr: seq.makeAsyncIterator())
         }
