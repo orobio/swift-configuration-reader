@@ -18,6 +18,7 @@ public actor ConfigurationService: Service {
     let filesSpecifications: [ConfigurationFileSpecification]
     let loadEnvironmentVariables: Bool
     let loadCommandLineArguments: Bool
+    let debounceTime: Duration
 
     let logger: Logger
 
@@ -31,12 +32,14 @@ public actor ConfigurationService: Service {
         filesSpecifications: [ConfigurationFileSpecification],
         loadEnvironmentVariables: Bool,
         loadCommandLineArguments: Bool,
-        logger: Logger = Logger(label: "ConfigurationService")
+        logger: Logger = Logger(label: "ConfigurationService"),
+        debounceTime: Duration = .milliseconds(100)
     ) {
         self.filesSpecifications = filesSpecifications
         self.loadEnvironmentVariables = loadEnvironmentVariables
         self.loadCommandLineArguments = loadCommandLineArguments
         self.logger = logger
+        self.debounceTime = debounceTime
     }
 
 
@@ -95,7 +98,10 @@ public actor ConfigurationService: Service {
             finished = true
         }
 
-        let filesStatesStream = try await configurationFilesStatesStream(for: self.filesSpecifications)
+        let filesStatesStream = try await configurationFilesStatesStream(
+            for: self.filesSpecifications,
+            debounceTime: self.debounceTime
+        )
         for await fileSpecificationsWithStates in filesStatesStream.cancelOnGracefulShutdown() {
             do {
                 let datas = try datasFromConfigurationFilesStates(fileSpecificationsWithStates)
