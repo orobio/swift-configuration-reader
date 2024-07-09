@@ -25,5 +25,5 @@ func configurationFilesStatesStream(
             (fileSpecification, fileState)
         }
     }
-    return combineLatest(from: fileSpecificationsWithStates)
+    return combineLatest(from: fileSpecificationsWithStates, waitIndefinitelyWhenNoInputs: true)
 }

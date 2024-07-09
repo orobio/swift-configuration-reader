@@ -13,21 +13,36 @@
 ///            latest values from the base sequences.
 ///
 func combineLatest<S: AsyncSequence>(
-    from sequences: [S]
+    from sequences: [S],
+    waitIndefinitelyWhenNoInputs: Bool = false
 ) -> AsyncStream<[S.Element]> where S: Sendable, S.Element: Sendable {
     return AsyncStream<[S.Element]> { continuation in
-        let storage = AsyncCombineLatestStorage<S.Element>(elementCount: sequences.count)
-        let tasks = sequences.enumerated().map { index, sequence in
-            Task {
-                for try await element in sequence {
-                    await storage.update(index, with: element, yieldTo: continuation)
+        if sequences.count == 0 {
+            continuation.yield([])
+            if waitIndefinitelyWhenNoInputs {
+                // Keep continuation alive. May not be necessary, but just to be safe
+                let task = Task {
+                    await Task.sleepUntilCanceled()
+                    withExtendedLifetime(continuation) {}
                 }
+                continuation.onTermination = { @Sendable _ in task.cancel() }
+            } else {
                 continuation.finish()
             }
-        }
+        } else {
+            let storage = AsyncCombineLatestStorage<S.Element>(elementCount: sequences.count)
+            let tasks = sequences.enumerated().map { index, sequence in
+                Task {
+                    for try await element in sequence {
+                        await storage.update(index, with: element, yieldTo: continuation)
+                    }
+                    continuation.finish()
+                }
+            }
 
-        continuation.onTermination = { @Sendable _ in
-            tasks.forEach { task in task.cancel() }
+            continuation.onTermination = { @Sendable _ in
+                tasks.forEach { task in task.cancel() }
+            }
         }
     }
 }
