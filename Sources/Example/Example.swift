@@ -17,8 +17,10 @@ struct Example {
         // Create configuration service
         let configurationService = ConfigurationService(
             filesSpecifications: [
-                ConfigurationFileSpecification(path: "./test1", optional: false),
-                ConfigurationFileSpecification(path: "./test2", optional: true),
+                // Configuration files should be in JSON format. Try modifying and deleting
+                // the example files to see the behavior of the library.
+                ConfigurationFileSpecification(path: "Sources/Example/test1.json", optional: false),
+                ConfigurationFileSpecification(path: "Sources/Example/test2.json", optional: true),
             ],
             loadEnvironmentVariables: true,
             loadCommandLineArguments: true

@@ -14,12 +14,13 @@ import AsyncAlgorithms
 ///            with their corresponding file state.
 ///
 func configurationFilesStatesStream(
-    for fileSpecifications: [ConfigurationFileSpecification]
+    for fileSpecifications: [ConfigurationFileSpecification],
+    debounceTime: Duration
 ) async throws -> AsyncStream<[(ConfigurationFileSpecification, FileState)]> {
     let inotifier = try Inotifier()
     let fileSpecificationsWithStates = try await fileSpecifications.map { fileSpecification in
         try await watchFile(atPath: fileSpecification.path, inotifier: inotifier)
-        .debounce(for: .seconds(1)) // Ignore multiple changes in a short time, like deleting and recreating the file.
+        .debounce(for: debounceTime) // Ignore multiple changes in a short time, like deleting and recreating the file.
         .removeDuplicates()
         .map { fileState in
             (fileSpecification, fileState)
