@@ -48,7 +48,7 @@ func combineLatest<S: AsyncSequence>(
 }
 
 
-private actor AsyncCombineLatestStorage<Element> {
+private actor AsyncCombineLatestStorage<Element: Sendable> {
     private var latest: [Element?]
 
     init(elementCount: Int) {
@@ -63,4 +63,3 @@ private actor AsyncCombineLatestStorage<Element> {
         }
     }
 }
-
