@@ -1,3 +1,4 @@
+import AsyncAlgorithms
 import Configuration
 import ServiceLifecycle
 import Logging
@@ -22,6 +23,10 @@ public actor ConfigurationService: Service {
 
     let logger: Logger
 
+    private var _overrides = ConfigurationValues()
+    private let _overridesTriggerStream: AsyncStream<Void>
+    private let _overridesTriggerContinuation: AsyncStream<Void>.Continuation
+
     /// Initialize with configuration type and configuration sources.
     ///
     ///   - filesSpecifications: The configuration files to load.
@@ -40,6 +45,38 @@ public actor ConfigurationService: Service {
         self.loadCommandLineArguments = loadCommandLineArguments
         self.logger = logger
         self.debounceTime = debounceTime
+
+        let (stream, continuation) = AsyncStream.makeStream(of: Void.self)
+        self._overridesTriggerStream = stream
+        self._overridesTriggerContinuation = continuation
+        self._overridesTriggerContinuation.yield()
+    }
+
+
+    /// Override configuration.
+    ///
+    /// Manipulate the configuration overrides, which can be used for overriding any
+    /// configuration values from other sources.
+    ///
+    /// Parameter body: Closure for manipulating the overrides. The new overrides are
+    ///                 applied when the closure ends.
+    ///
+    public func withOverrides(body: @Sendable (inout ConfigurationValues) -> Void) -> Void {
+        body(&self._overrides)
+        _overridesTriggerContinuation.yield()
+    }
+
+
+    /// Override a configuration value.
+    ///
+    /// Parameter path: Path of the configuration value.
+    ///
+    /// Parameter value: New value for the specified configuration path. Or nil to remove the override.
+    ///
+    public func setOverride(_ path: String, to value: (any Sendable)?) {
+        withOverrides { overrides in
+            overrides[path] = value
+        }
     }
 
 
@@ -102,7 +139,10 @@ public actor ConfigurationService: Service {
             for: self.filesSpecifications,
             debounceTime: self.debounceTime
         )
-        for await fileSpecificationsWithStates in filesStatesStream.cancelOnGracefulShutdown() {
+
+        let configStream = combineLatest(filesStatesStream, self._overridesTriggerStream)
+
+        for await (fileSpecificationsWithStates, _) in configStream.cancelOnGracefulShutdown() {
             do {
                 let datas = try datasFromConfigurationFilesStates(fileSpecificationsWithStates)
 
@@ -115,6 +155,7 @@ public actor ConfigurationService: Service {
                 if self.loadCommandLineArguments {
                     configurationManager.load(.commandLineArguments)
                 }
+                configurationManager.load(self._overrides.values)
 
                 logger.debug("New configuration data available")
                 self.configurationStreamHandlers.forEach { $0.process(configurationManager) }
