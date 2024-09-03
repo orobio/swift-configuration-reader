@@ -239,17 +239,17 @@ private func datasFromConfigurationFilesStates(
             return data
 
         case .fileTooLarge:
-            throw ConfigurationError.fileTooLarge(fileSpecification.path)
+            throw ConfigurationError.fileTooLarge(fileName: fileSpecification.path)
 
         case .noReadableFile:
             if fileSpecification.optional {
                 return nil
             } else {
-                throw ConfigurationError.missingFile(fileSpecification.path)
+                throw ConfigurationError.missingFile(fileName: fileSpecification.path)
             }
 
         case .fileReadError(let error):
-            throw ConfigurationError.fileReadError(fileSpecification.path, error)
+            throw ConfigurationError.fileReadError(fileName: fileSpecification.path, error: error)
         }
     }
 }
