@@ -21,6 +21,8 @@ public actor ConfigurationService: Service {
     let loadCommandLineArguments: Bool
     let debounceTime: Duration
 
+    public var activeErrors = [any Error]()
+
     let logger: Logger
 
     private var _overrides = ConfigurationValues()
@@ -94,8 +96,10 @@ public actor ConfigurationService: Service {
                 let configurationData = try ConfigurationDataType(from: configurationManager)
                 logger.debug("Created configuration data value of type: \(ConfigurationDataType.self)")
                 continuation.yield(configurationData)
+                return nil // no error
             } catch {
-                logger.error("Failed to parse configuration data for type: \(ConfigurationDataType.self), error: \(error)")
+                logger.error("Failed to initialize configuration data type: \(ConfigurationDataType.self), error: \(error)")
+                return .configurationDataInitializationError(type: ConfigurationDataType.self, error: error)
             }
         } finish: {
             continuation.finish()
@@ -110,6 +114,7 @@ public actor ConfigurationService: Service {
         // Immediately process current value, if available
         if let configurationManager = self.latestConfigurationManager {
             configurationStreamHandler.process(configurationManager)
+            self.updateActiveErrors()
         }
 
         // Immediately finish stream if the service is finished
@@ -132,6 +137,8 @@ public actor ConfigurationService: Service {
         precondition(finished == false)
         defer {
             self.configurationStreamHandlers.forEach { $0.finish() }
+            self.currentRunLoopError = nil
+            self.updateActiveErrors()
             finished = true
         }
 
@@ -160,9 +167,22 @@ public actor ConfigurationService: Service {
                 logger.debug("New configuration data available")
                 self.configurationStreamHandlers.forEach { $0.process(configurationManager) }
                 self.latestConfigurationManager = configurationManager
+                self.currentRunLoopError = nil
             } catch {
                 logger.error("Failed to get configuration data: \(error)")
+                self.currentRunLoopError = error
             }
+
+            self.updateActiveErrors()
+        }
+    }
+
+
+    private func updateActiveErrors() {
+        if let currentRunLoopError {
+            self.activeErrors = [currentRunLoopError]
+        } else {
+            self.activeErrors = self.configurationStreamHandlers.compactMap(\.currentProcessError)
         }
     }
 
@@ -173,16 +193,30 @@ public actor ConfigurationService: Service {
 
 
     // Private data
-    private struct ConfigurationStreamHandler {
+    private class ConfigurationStreamHandler {
         final class ID: Sendable {}
         let id = ID()
 
-        let process: (ConfigurationManager) -> ()
+        let doProcess: (ConfigurationManager) -> ConfigurationError?
         let finish: () -> ()
+        var currentProcessError: Error?
+
+        init(
+            doProcess: @escaping (ConfigurationManager) -> ConfigurationError?,
+            finish: @escaping () -> ()
+        ) {
+            self.doProcess = doProcess
+            self.finish = finish
+        }
+
+        func process(_ configurationManager: ConfigurationManager) {
+            self.currentProcessError = doProcess(configurationManager)
+        }
     }
 
     private var configurationStreamHandlers = [ConfigurationStreamHandler]()
     private var latestConfigurationManager: ConfigurationManager?
+    private var currentRunLoopError: Error?
     private var finished = false
 }
 
